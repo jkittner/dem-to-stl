@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dem-to-stl"
+version = "0.1.0"
+description = "Generate printable STL terrain models from DEM data via Google Earth Engine"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "earthengine-api",
+  "fastapi",
+  "numpy",
+  "xarray",
+  "rioxarray",
+  "scipy",
+  "requests",
+  "pyproj",
+  "uvicorn",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["dem_to_stl*"]
+
+[tool.setuptools.package-data]
+dem_to_stl = ["web_static/*"]
+
+[project.scripts]
+dem-to-stl-mckinley = "dem_to_stl.examples:run_mckinley"
+dem-to-stl-web = "dem_to_stl.web_app:run_web"

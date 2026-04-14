@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DEM to STL Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        background: radial-gradient(circle at 10% 20%, #edf6ff 0%, #f3f8ee 40%, #f9f7ef 100%);
+      }
+
+      #map,
+      #viewer {
+        height: 100%;
+        min-height: 520px;
+        width: 100%;
+        border-radius: 1rem;
+        flex: 1 1 auto;
+      }
+
+      .map-card,
+      .viewer-card {
+        display: flex;
+        flex-direction: column;
+        min-height: 620px;
+      }
+
+      .panel {
+        backdrop-filter: blur(6px);
+        background: rgba(255, 255, 255, 0.86);
+      }
+
+      .viewer-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .viewer-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.55rem;
+        border-radius: 9999px;
+        border: 1px solid #cbd5e1;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+      }
+
+      .angle-value {
+        display: inline-flex;
+        min-width: 2.65rem;
+        justify-content: center;
+        font-weight: 700;
+        color: #334155;
+      }
+
+      .color-picker-shell {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.18rem 0.5rem 0.18rem 0.25rem;
+        border-radius: 9999px;
+        border: 1px solid #cbd5e1;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+      }
+
+      .color-preview {
+        width: 1.45rem;
+        height: 1.45rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(15, 23, 42, 0.22);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+      }
+
+      .color-picker-shell input[type="color"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .help-dot {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1rem;
+        height: 1rem;
+        margin-left: 0.25rem;
+        border-radius: 9999px;
+        border: 1px solid #94a3b8;
+        color: #475569;
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: help;
+        background: #f8fafc;
+        position: relative;
+        user-select: none;
+      }
+
+      .help-dot:hover {
+        background: #e2e8f0;
+      }
+
+      .help-dot::after {
+        content: attr(data-help);
+        position: absolute;
+        left: 50%;
+        bottom: calc(100% + 0.45rem);
+        transform: translateX(-50%);
+        min-width: 16rem;
+        max-width: 24rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 0.5rem;
+        background: #0f172a;
+        color: #f8fafc;
+        font-size: 0.72rem;
+        line-height: 1.25;
+        white-space: normal;
+        text-align: left;
+        box-shadow: 0 10px 30px rgba(2, 6, 23, 0.28);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        z-index: 40;
+      }
+
+      .help-dot:hover::after,
+      .help-dot:focus-visible::after {
+        opacity: 1;
+        visibility: visible;
+      }
+    </style>
+  </head>
+  <body class="text-slate-900">
+    <main class="mx-auto max-w-[1600px] p-4 md:p-6 lg:p-8">
+      <header class="mb-4 rounded-2xl border border-slate-200 panel p-5 shadow-sm">
+        <h1 class="text-2xl font-black tracking-tight md:text-3xl">DEM to STL Studio</h1>
+        <p class="mt-1 text-sm text-slate-600">
+          Set center and parameters, preview extent on the map, then generate and inspect STL in 3D.
+        </p>
+      </header>
+
+      <section class="mb-4 rounded-2xl border border-slate-200 panel p-4 shadow-sm">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <fieldset class="rounded-xl border border-slate-200 bg-white/70 p-3">
+            <legend class="px-1 text-xs font-black uppercase tracking-wide text-slate-700">Basic Area</legend>
+            <div class="mt-2 grid grid-cols-2 gap-3">
+              <label class="text-xs font-semibold text-slate-700">Center Lat
+                <input id="centerLat" type="number" step="0.0001" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="63.06" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Center Lon
+                <input id="centerLon" type="number" step="0.0001" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="-151.175" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Radius (m)
+                <input id="radiusM" type="number" step="100" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="8000" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Shape
+                <select id="outputShape" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
+                  <option value="hexagonal" selected>Hexagon</option>
+                  <option value="square">Square</option>
+                  <option value="circular">Circle</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="rounded-xl border border-slate-200 bg-white/70 p-3">
+            <legend class="px-1 text-xs font-black uppercase tracking-wide text-slate-700">Model Sizing</legend>
+            <div class="mt-2 grid grid-cols-2 gap-3">
+              <label class="text-xs font-semibold text-slate-700">Width (mm)
+                <input id="widthMm" type="number" step="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="100" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Height (mm)
+                <input id="heightMm" type="number" step="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="100" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Spacing (mm)
+                <input id="meshSpacing" type="number" step="0.05" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="0.4" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Vertical Exag.
+                <input id="verticalExaggeration" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="2.0" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Base (mm)
+                <input id="baseHeight" type="number" step="0.5" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="2.0" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Print Bed (mm)
+                <input id="viewerBedSize" type="number" step="5" min="40" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="300" />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="rounded-xl border border-slate-200 bg-white/70 p-3">
+            <legend class="px-1 text-xs font-black uppercase tracking-wide text-slate-700">Advanced Tuning</legend>
+            <div class="mt-2 grid grid-cols-2 gap-3">
+              <label class="text-xs font-semibold text-slate-700">Adaptive
+                <select id="adaptiveTriangulation" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
+                  <option value="true" selected>On</option>
+                  <option value="false">Off</option>
+                </select>
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Relief Thresh. (mm)
+                <input id="adaptiveRelief" type="number" step="0.05" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="0.2" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Iterations
+                <input id="adaptiveIterations" type="number" step="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="8" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Max New Points
+                <input id="adaptiveMaxPoints" type="number" step="1000" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="40000" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Min Angle (deg)
+                <input id="adaptiveMinAngle" type="number" step="0.5" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="26" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Anisotropic
+                <select id="anisotropicOn" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
+                  <option value="true" selected>On</option>
+                  <option value="false">Off</option>
+                </select>
+              </label>
+              <label class="text-xs font-semibold text-slate-700">Aniso Strength
+                <input id="anisotropicStrength" type="number" step="0.1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="0.9" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">EE Project
+                <input id="earthEngineProject" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="focus-nucleus-413610" />
+              </label>
+              <label class="text-xs font-semibold text-slate-700">DEM Dataset ID
+                <input id="demDatasetId" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="MERIT/DEM/v1_0_3" />
+              </label>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+          <button id="generateBtn" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700">Generate STL</button>
+          <button id="clearCacheBtn" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Clear Cache</button>
+          <span id="cacheStats" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">Cache: -</span>
+          <div id="spinner" class="hidden h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-800"></div>
+          <span id="statusText" class="text-sm text-slate-700">Idle</span>
+          <span id="statusMeta" class="flex items-center gap-2"></span>
+          <a id="downloadLink" class="hidden rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500" href="#" download>Download STL</a>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-4 items-stretch lg:grid-cols-2">
+        <div class="map-card rounded-2xl border border-slate-200 panel p-3 shadow-sm">
+          <h2 class="mb-2 text-sm font-bold text-slate-700">Map</h2>
+          <div id="map"></div>
+        </div>
+        <div class="viewer-card rounded-2xl border border-slate-200 panel p-3 shadow-sm">
+          <h2 class="mb-2 text-sm font-bold text-slate-700">3D Preview</h2>
+          <div class="viewer-toolbar text-xs text-slate-700">
+            <label class="color-picker-shell" title="Mesh color">
+              <span class="color-preview" id="meshColorPreview" style="background: #9ca3af"></span>
+              <span class="font-semibold">Mesh Color</span>
+              <input id="meshColor" type="color" value="#9ca3af" aria-label="Mesh color" />
+            </label>
+            <label class="viewer-chip">Sun Azimuth
+              <input id="sunAzimuth" type="range" min="0" max="360" step="1" value="28" class="w-24" />
+              <span id="sunAzimuthValue" class="angle-value">28 deg</span>
+            </label>
+            <label class="viewer-chip">Sun Elevation
+              <input id="sunElevation" type="range" min="5" max="85" step="1" value="14" class="w-24" />
+              <span id="sunElevationValue" class="angle-value">14 deg</span>
+            </label>
+          </div>
+          <div id="viewer"></div>
+          <p id="meshInfo" class="mt-2 text-xs text-slate-600">No model loaded yet.</p>
+        </div>
+      </section>
+
+      <section class="mt-4 rounded-2xl border border-slate-200 panel p-3 shadow-sm">
+        <h2 class="mb-2 text-sm font-bold text-slate-700">Generated Models</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-700">
+              <tr>
+                <th class="px-3 py-2 font-semibold">Generated On</th>
+                <th class="px-3 py-2 font-semibold">Center</th>
+                <th class="px-3 py-2 font-semibold">Status</th>
+                <th class="px-3 py-2 font-semibold">Triangles</th>
+                <th class="px-3 py-2 font-semibold">Cache</th>
+                <th class="px-3 py-2 font-semibold">V-Exag</th>
+                <th class="px-3 py-2 font-semibold">Spacing (mm)</th>
+                <th class="px-3 py-2 font-semibold">STL Size</th>
+                <th class="px-3 py-2 font-semibold">Duration</th>
+                <th class="px-3 py-2 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-200">
+              <tr id="historyEmptyRow">
+                <td colspan="10" class="px-3 py-4 text-slate-500">No generated models yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>
