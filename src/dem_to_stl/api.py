@@ -1,17 +1,17 @@
-from __future__ import annotations
-
 import math
 from pathlib import Path
 
 from pyproj import Geod
 
 from .converter import geotiff_to_triangles
-from .earth_engine import fetch_merit_dem_geotiff
-from .models import BoundingBox, DEMToSTLRequest, STLResult
+from .earth_engine import fetch_dem_geotiff
+from .models import BoundingBox
+from .models import DEMToSTLRequest
+from .models import STLResult
 from .stl_writer import build_binary_stl_bytes
 
 
-_WGS84 = Geod(ellps="WGS84")
+_WGS84 = Geod(ellps='WGS84')
 
 
 def _bbox_from_center_radius(lat: float, lon: float, radius_m: float) -> BoundingBox:
@@ -57,9 +57,9 @@ def _ground_extent_m(bbox: BoundingBox) -> tuple[float, float]:
 
 
 def generate_stl_bytes(
-    request: DEMToSTLRequest,
-    write_to_file: bool = False,
-    output_path: Path | None = None,
+        request: DEMToSTLRequest,
+        write_to_file: bool = False,
+        output_path: Path | None = None,
 ) -> STLResult:
     """Generate terrain STL with optional file write and in-memory bytes.
 
@@ -88,11 +88,13 @@ def generate_stl_bytes(
     else:
         center = request.center_radius
         assert center is not None
-        bbox = _bbox_from_center_radius(center.latitude, center.longitude, center.radius_m)
+        bbox = _bbox_from_center_radius(
+            center.latitude, center.longitude, center.radius_m,
+        )
 
     ground_width_m, ground_height_m = _ground_extent_m(bbox)
 
-    geotiff_path, cache_hit, native_dem_scale_m = fetch_merit_dem_geotiff(
+    geotiff_path, cache_hit, native_dem_scale_m = fetch_dem_geotiff(
         request=request,
         bbox=bbox,
     )
@@ -125,7 +127,9 @@ def generate_stl_bytes(
     final_output_path = output_path or request.output_path
     if write_to_file:
         if final_output_path is None:
-            raise ValueError("write_to_file=True requires output_path or request.output_path.")
+            raise ValueError(
+                'write_to_file=True requires output_path or request.output_path.',
+            )
         final_output_path.parent.mkdir(parents=True, exist_ok=True)
         final_output_path.write_bytes(stl_bytes)
     else:

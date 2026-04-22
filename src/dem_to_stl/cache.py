@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import hashlib
 import json
 from dataclasses import asdict
@@ -31,14 +29,18 @@ def geotiff_cache_key(bbox: BoundingBox, dem_scale_m: float, dataset_id: str) ->
     """
 
     payload = {
-        "north": _rounded(bbox.north),
-        "south": _rounded(bbox.south),
-        "east": _rounded(bbox.east),
-        "west": _rounded(bbox.west),
-        "dem_scale_m": round(dem_scale_m, 6),
-        "dataset_id": dataset_id,
+        'north': _rounded(bbox.north),
+        'south': _rounded(bbox.south),
+        'east': _rounded(bbox.east),
+        'west': _rounded(bbox.west),
+        'dem_scale_m': round(dem_scale_m, 6),
+        'dataset_id': dataset_id,
     }
-    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(
+        json.dumps(
+            payload, sort_keys=True,
+        ).encode('utf-8'),
+    ).hexdigest()
     return digest
 
 
@@ -67,7 +69,7 @@ def write_metadata(path: Path, metadata: dict[str, Any]) -> None:
     """
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(metadata, indent=2), encoding='utf-8')
 
 
 def metadata_for_bbox(bbox: BoundingBox) -> dict[str, float]:

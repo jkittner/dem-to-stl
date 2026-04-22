@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import math
 from pathlib import Path
 
@@ -12,7 +10,11 @@ from .models import OutputShape
 from .stl_writer import write_binary_stl
 
 
-def _tri(p0: np.ndarray, p1: np.ndarray, p2: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _tri(
+        p0: np.ndarray,
+        p1: np.ndarray,
+        p2: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Cast triangle vertices to STL-friendly float32 arrays.
 
     Parameters:
@@ -28,12 +30,12 @@ def _tri(p0: np.ndarray, p1: np.ndarray, p2: np.ndarray) -> tuple[np.ndarray, np
 
 
 def _shape_mask(
-    output_shape: OutputShape,
-    x_mm: np.ndarray,
-    y_mm: np.ndarray,
-    width_mm: float,
-    height_mm: float,
-    shape_margin_mm: float = 0.0,
+        output_shape: OutputShape,
+        x_mm: np.ndarray,
+        y_mm: np.ndarray,
+        width_mm: float,
+        height_mm: float,
+        shape_margin_mm: float = 0.0,
 ) -> np.ndarray:
     """Evaluate whether XY sample locations lie inside the requested shape.
 
@@ -71,15 +73,17 @@ def _shape_mask(
     # Flat-top regular hexagon.
     adx = np.abs(dx)
     ady = np.abs(dy)
-    return (ady <= (math.sqrt(3.0) * r / 2.0)) & ((math.sqrt(3.0) * adx + ady) <= math.sqrt(3.0) * r)
+    return (
+        ady <= (math.sqrt(3.0) * r / 2.0)
+    ) & ((math.sqrt(3.0) * adx + ady) <= math.sqrt(3.0) * r)
 
 
 def _shape_contains_points(
-    output_shape: OutputShape,
-    points_xy: np.ndarray,
-    width_mm: float,
-    height_mm: float,
-    eps: float = 1e-9,
+        output_shape: OutputShape,
+        points_xy: np.ndarray,
+        width_mm: float,
+        height_mm: float,
+        eps: float = 1e-9,
 ) -> np.ndarray:
     """Point-in-shape test for arbitrary XY point arrays.
 
@@ -100,7 +104,9 @@ def _shape_contains_points(
     y = points_xy[:, 1]
 
     if output_shape == OutputShape.SQUARE:
-        return (x >= -eps) & (x <= width_mm + eps) & (y >= -eps) & (y <= height_mm + eps)
+        return (
+            x >= -eps
+        ) & (x <= width_mm + eps) & (y >= -eps) & (y <= height_mm + eps)
 
     cx = width_mm / 2.0
     cy = height_mm / 2.0
@@ -113,10 +119,18 @@ def _shape_contains_points(
 
     adx = np.abs(dx)
     ady = np.abs(dy)
-    return (ady <= (math.sqrt(3.0) * r / 2.0 + eps)) & ((math.sqrt(3.0) * adx + ady) <= (math.sqrt(3.0) * r + eps))
+    return (
+        (ady <= (math.sqrt(3.0) * r / 2.0 + eps))
+        & ((math.sqrt(3.0) * adx + ady) <= (math.sqrt(3.0) * r + eps))
+    )
 
 
-def _boundary_polygon(output_shape: OutputShape, width_mm: float, height_mm: float, spacing_mm: float) -> np.ndarray:
+def _boundary_polygon(
+        output_shape: OutputShape,
+        width_mm: float,
+        height_mm: float,
+        spacing_mm: float,
+) -> np.ndarray:
     """Build analytic boundary vertices for the output footprint.
 
     Parameters:
@@ -151,15 +165,22 @@ def _boundary_polygon(output_shape: OutputShape, width_mm: float, height_mm: flo
 
     if output_shape == OutputShape.HEXAGON:
         angles = np.deg2rad([0, 60, 120, 180, 240, 300])
-        return np.column_stack([cx + r * np.cos(angles), cy + r * np.sin(angles)]).astype(np.float64)
+        return np.column_stack(
+            [cx + r * np.cos(angles), cy + r * np.sin(angles)],
+        ).astype(np.float64)
 
     circumference = 2.0 * math.pi * r
     n = max(96, int(math.ceil(circumference / max(0.5, spacing_mm))))
     angles = np.linspace(0.0, 2.0 * math.pi, n, endpoint=False)
-    return np.column_stack([cx + r * np.cos(angles), cy + r * np.sin(angles)]).astype(np.float64)
+    return np.column_stack(
+        [cx + r * np.cos(angles), cy + r * np.sin(angles)],
+    ).astype(np.float64)
 
 
-def _sample_edges(vertices: np.ndarray, spacing_mm: float) -> np.ndarray:
+def _sample_edges(
+        vertices: np.ndarray,
+        spacing_mm: float,
+) -> np.ndarray:
     """Densify polygon edges with approximately uniform samples.
 
     Parameters:
@@ -188,11 +209,11 @@ def _sample_edges(vertices: np.ndarray, spacing_mm: float) -> np.ndarray:
 
 
 def _build_2d_points(
-    output_shape: OutputShape,
-    poly: np.ndarray,
-    width_mm: float,
-    height_mm: float,
-    spacing_mm: float,
+        output_shape: OutputShape,
+        poly: np.ndarray,
+        width_mm: float,
+        height_mm: float,
+        spacing_mm: float,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Create initial 2D triangulation points for top-surface meshing.
 
@@ -211,8 +232,8 @@ def _build_2d_points(
             - sampled boundary points used to preserve silhouette.
     """
 
-    # Use edge-sampled perimeters for all shapes; square/hex remain exact because their
-    # boundary points are collinear along the straight edges.
+    # Use edge-sampled perimeters for all shapes; square/hex remain exact
+    # because their boundary points are collinear along the straight edges.
     boundary = _sample_edges(poly, spacing_mm)
 
     support_ring = np.empty((0, 2), dtype=np.float64)
@@ -233,7 +254,14 @@ def _build_2d_points(
     else:
         xg, yg = np.meshgrid(xs, ys)
         shape_margin_mm = max(0.0, spacing_mm * 0.35)
-        mask = _shape_mask(output_shape, xg, yg, width_mm, height_mm, shape_margin_mm=shape_margin_mm)
+        mask = _shape_mask(
+            output_shape,
+            xg,
+            yg,
+            width_mm,
+            height_mm,
+            shape_margin_mm=shape_margin_mm,
+        )
 
         # Keep interior samples away from the boundary so the silhouette is driven
         # by explicit boundary vertices (avoids multi-corner artifacts).
@@ -265,7 +293,11 @@ def _build_2d_points(
         interior = np.column_stack([xg[mask], yg[mask]]).astype(np.float64)
 
     center = np.array([[width_mm / 2.0, height_mm / 2.0]], dtype=np.float64)
-    all_points = np.vstack([boundary, support_ring, interior, center]) if interior.size else np.vstack([boundary, support_ring, center])
+    all_points = (
+        np.vstack([boundary, support_ring, interior, center])
+        if interior.size
+        else np.vstack([boundary, support_ring, center])
+    )
 
     uniq: dict[tuple[int, int], tuple[float, float]] = {}
     for x, y in all_points:
@@ -348,10 +380,10 @@ def _longest_edge_midpoints(pts_xy: np.ndarray, simplices: np.ndarray) -> np.nda
 
 
 def _ridge_aligned_points(
-    tri_xy: np.ndarray,
-    tri_z: np.ndarray,
-    mesh_spacing_mm: float,
-    anisotropic_strength: float,
+        tri_xy: np.ndarray,
+        tri_z: np.ndarray,
+        mesh_spacing_mm: float,
+        anisotropic_strength: float,
 ) -> np.ndarray:
     """Create anisotropic candidates aligned with local ridge direction.
 
@@ -416,16 +448,20 @@ def _ridge_aligned_points(
     step = local_scale * (0.18 + 0.30 * anisotropic_strength)
     step = np.clip(step, mesh_spacing_mm * 0.2, mesh_spacing_mm * 1.5)
 
-    p_plus = np.column_stack([centroids[:, 0] + ridge_x * step, centroids[:, 1] + ridge_y * step])
-    p_minus = np.column_stack([centroids[:, 0] - ridge_x * step, centroids[:, 1] - ridge_y * step])
+    p_plus = np.column_stack(
+        [centroids[:, 0] + ridge_x * step, centroids[:, 1] + ridge_y * step],
+    )
+    p_minus = np.column_stack(
+        [centroids[:, 0] - ridge_x * step, centroids[:, 1] - ridge_y * step],
+    )
     return np.vstack([p_plus, p_minus]).astype(np.float64)
 
 
 def _top_simplices_for_shape(
-    pts_xy: np.ndarray,
-    output_shape: OutputShape,
-    output_width_mm: float,
-    output_height_mm: float,
+        pts_xy: np.ndarray,
+        output_shape: OutputShape,
+        output_width_mm: float,
+        output_height_mm: float,
 ) -> np.ndarray:
     """Run Delaunay and keep only valid, non-degenerate inside triangles.
 
@@ -448,7 +484,10 @@ def _top_simplices_for_shape(
     p0 = pts_xy[simplices[:, 0]]
     p1 = pts_xy[simplices[:, 1]]
     p2 = pts_xy[simplices[:, 2]]
-    doubled_area = np.abs((p1[:, 0] - p0[:, 0]) * (p2[:, 1] - p0[:, 1]) - (p1[:, 1] - p0[:, 1]) * (p2[:, 0] - p0[:, 0]))
+    doubled_area = np.abs((p1[:, 0] - p0[:, 0]) * (
+        p2[:, 1] -
+        p0[:, 1]
+    ) - (p1[:, 1] - p0[:, 1]) * (p2[:, 0] - p0[:, 0]))
     area_ok = doubled_area > 1e-8
 
     centroids = (p0 + p1 + p2) / 3.0
@@ -464,14 +503,14 @@ def _top_simplices_for_shape(
 
 
 def _elevation_for_points(
-    da: xr.DataArray,
-    points_xy_mm: np.ndarray,
-    output_width_mm: float,
-    output_height_mm: float,
-    bbox_west: float,
-    bbox_east: float,
-    bbox_south: float,
-    bbox_north: float,
+        da: xr.DataArray,
+        points_xy_mm: np.ndarray,
+        output_width_mm: float,
+        output_height_mm: float,
+        bbox_west: float,
+        bbox_east: float,
+        bbox_south: float,
+        bbox_north: float,
 ) -> np.ndarray:
     """Sample DEM elevations at arbitrary XY model coordinates.
 
@@ -490,16 +529,16 @@ def _elevation_for_points(
         nearest-neighbor fallback (remaining NaNs replaced by minimum elevation).
     """
 
-    x_src = da["x"].values
-    y_src = da["y"].values
+    x_src = da['x'].values
+    y_src = da['y'].values
 
     if x_src[0] > x_src[-1]:
-        da = da.sortby("x")
+        da = da.sortby('x')
     if y_src[0] > y_src[-1]:
-        da = da.sortby("y")
+        da = da.sortby('y')
 
-    x_sorted = da["x"].values.astype(np.float64)
-    y_sorted = da["y"].values.astype(np.float64)
+    x_sorted = da['x'].values.astype(np.float64)
+    y_sorted = da['y'].values.astype(np.float64)
 
     if x_sorted.size >= 2:
         dx = float(np.median(np.abs(np.diff(x_sorted))))
@@ -523,51 +562,57 @@ def _elevation_for_points(
         safe_south = float(y_sorted.min())
         safe_north = float(y_sorted.max())
 
-    lons = safe_west + (points_xy_mm[:, 0] / output_width_mm) * (safe_east - safe_west)
-    lats = safe_north - (points_xy_mm[:, 1] / output_height_mm) * (safe_north - safe_south)
+    lons = safe_west + (
+        points_xy_mm[:, 0] /
+        output_width_mm
+    ) * (safe_east - safe_west)
+    lats = safe_north - \
+        (points_xy_mm[:, 1] / output_height_mm) * (safe_north - safe_south)
 
     sampled_linear = da.interp(
-        x=xr.DataArray(lons, dims="points"),
-        y=xr.DataArray(lats, dims="points"),
-        method="linear",
+        x=xr.DataArray(lons, dims='points'),
+        y=xr.DataArray(lats, dims='points'),
+        method='linear',
     ).values.astype(np.float64)
 
     if np.any(np.isnan(sampled_linear)):
         sampled_nearest = da.interp(
-            x=xr.DataArray(lons, dims="points"),
-            y=xr.DataArray(lats, dims="points"),
-            method="nearest",
+            x=xr.DataArray(lons, dims='points'),
+            y=xr.DataArray(lats, dims='points'),
+            method='nearest',
         ).values.astype(np.float64)
-        sampled_linear = np.where(np.isnan(sampled_linear), sampled_nearest, sampled_linear)
+        sampled_linear = np.where(
+            np.isnan(sampled_linear), sampled_nearest, sampled_linear,
+        )
 
     if np.all(np.isnan(sampled_linear)):
-        raise ValueError("Downloaded DEM contains only nodata.")
+        raise ValueError('Downloaded DEM contains only nodata.')
 
     min_elev = float(np.nanmin(sampled_linear))
     return np.where(np.isnan(sampled_linear), min_elev, sampled_linear)
 
 
 def geotiff_to_triangles(
-    geotiff_path: Path,
-    output_shape: OutputShape,
-    output_width_mm: float,
-    output_height_mm: float,
-    mesh_spacing_mm: float,
-    adaptive_triangulation: bool,
-    adaptive_relief_threshold_mm: float,
-    adaptive_max_new_points: int,
-    adaptive_iterations: int,
-    adaptive_min_angle_deg: float,
-    adaptive_anisotropic_refinement: bool,
-    adaptive_anisotropic_strength: float,
-    base_height_mm: float,
-    vertical_exaggeration: float,
-    ground_width_m: float,
-    ground_height_m: float,
-    bbox_west: float,
-    bbox_east: float,
-    bbox_south: float,
-    bbox_north: float,
+        geotiff_path: Path,
+        output_shape: OutputShape,
+        output_width_mm: float,
+        output_height_mm: float,
+        mesh_spacing_mm: float,
+        adaptive_triangulation: bool,
+        adaptive_relief_threshold_mm: float,
+        adaptive_max_new_points: int,
+        adaptive_iterations: int,
+        adaptive_min_angle_deg: float,
+        adaptive_anisotropic_refinement: bool,
+        adaptive_anisotropic_strength: float,
+        base_height_mm: float,
+        vertical_exaggeration: float,
+        ground_width_m: float,
+        ground_height_m: float,
+        bbox_west: float,
+        bbox_east: float,
+        bbox_south: float,
+        bbox_north: float,
 ) -> list[tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Convert a DEM GeoTIFF into watertight top/base/side STL triangles.
 
@@ -618,10 +663,12 @@ def geotiff_to_triangles(
     """
 
     da = rioxarray.open_rasterio(geotiff_path, masked=True).squeeze(drop=True)
-    if "band" in da.dims:
+    if 'band' in da.dims:
         da = da.isel(band=0)
 
-    poly = _boundary_polygon(output_shape, output_width_mm, output_height_mm, mesh_spacing_mm)
+    poly = _boundary_polygon(
+        output_shape, output_width_mm, output_height_mm, mesh_spacing_mm,
+    )
     pts_xy, _ = _build_2d_points(
         output_shape=output_shape,
         poly=poly,
@@ -631,7 +678,7 @@ def geotiff_to_triangles(
     )
 
     if len(pts_xy) < 3:
-        raise ValueError("Not enough points to build mesh.")
+        raise ValueError('Not enough points to build mesh.')
 
     elev_m = _elevation_for_points(
         da=da,
@@ -648,7 +695,10 @@ def geotiff_to_triangles(
     meters_per_mm_x = max(1e-9, ground_width_m / output_width_mm)
     meters_per_mm_y = max(1e-9, ground_height_m / output_height_mm)
     meters_per_mm = max(meters_per_mm_x, meters_per_mm_y)
-    z_top = base_height_mm + ((elev_m - min_elev_m) / meters_per_mm) * vertical_exaggeration
+    z_top = base_height_mm + (
+        (elev_m - min_elev_m) /
+        meters_per_mm
+    ) * vertical_exaggeration
 
     top_simplices = _top_simplices_for_shape(
         pts_xy=pts_xy,
@@ -676,7 +726,9 @@ def geotiff_to_triangles(
 
             new_point_candidates: list[np.ndarray] = []
             if np.any(relief_bad):
-                new_point_candidates.append(np.mean(tri_pts[relief_bad], axis=1))
+                new_point_candidates.append(
+                    np.mean(tri_pts[relief_bad], axis=1),
+                )
                 if adaptive_anisotropic_refinement:
                     ridge_points = _ridge_aligned_points(
                         tri_xy=tri_pts[relief_bad],
@@ -687,7 +739,9 @@ def geotiff_to_triangles(
                     if ridge_points.size > 0:
                         new_point_candidates.append(ridge_points)
             if np.any(angle_bad):
-                new_point_candidates.append(_longest_edge_midpoints(pts_xy, top_simplices[angle_bad]))
+                new_point_candidates.append(
+                    _longest_edge_midpoints(pts_xy, top_simplices[angle_bad]),
+                )
 
             if not new_point_candidates:
                 break
@@ -729,7 +783,8 @@ def geotiff_to_triangles(
                 bbox_south=bbox_south,
                 bbox_north=bbox_north,
             )
-            new_z = base_height_mm + ((new_elev_m - min_elev_m) / meters_per_mm) * vertical_exaggeration
+            new_z = base_height_mm + \
+                ((new_elev_m - min_elev_m) / meters_per_mm) * vertical_exaggeration
 
             pts_xy = np.vstack([pts_xy, new_pts])
             z_top = np.concatenate([z_top, new_z])
@@ -784,26 +839,28 @@ def geotiff_to_triangles(
         tris.append(_tri(b0, b1, t1))
 
     if not tris:
-        raise ValueError("No triangles were generated. Check extent and spacing inputs.")
+        raise ValueError(
+            'No triangles were generated. Check extent and spacing inputs.',
+        )
 
     return tris
 
 
 def convert_geotiff_to_stl(
-    geotiff_path: Path,
-    output_path: Path,
-    output_shape: OutputShape,
-    output_width_mm: float,
-    output_height_mm: float,
-    mesh_spacing_mm: float,
-    base_height_mm: float,
-    vertical_exaggeration: float,
-    ground_width_m: float,
-    ground_height_m: float,
-    bbox_west: float,
-    bbox_east: float,
-    bbox_south: float,
-    bbox_north: float,
+        geotiff_path: Path,
+        output_path: Path,
+        output_shape: OutputShape,
+        output_width_mm: float,
+        output_height_mm: float,
+        mesh_spacing_mm: float,
+        base_height_mm: float,
+        vertical_exaggeration: float,
+        ground_width_m: float,
+        ground_height_m: float,
+        bbox_west: float,
+        bbox_east: float,
+        bbox_south: float,
+        bbox_north: float,
 ) -> int:
     """Legacy convenience helper that writes STL directly from a GeoTIFF.
 

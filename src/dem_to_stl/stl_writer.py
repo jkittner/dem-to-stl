@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import struct
 from pathlib import Path
 
@@ -27,7 +25,9 @@ def _normal(p0: np.ndarray, p1: np.ndarray, p2: np.ndarray) -> np.ndarray:
     return (n / norm).astype(np.float32)
 
 
-def build_binary_stl_bytes(triangles: list[tuple[np.ndarray, np.ndarray, np.ndarray]]) -> bytes:
+def build_binary_stl_bytes(
+        triangles: list[tuple[np.ndarray, np.ndarray, np.ndarray]],
+) -> bytes:
     """Serialize triangles into binary STL payload.
 
     Parameters:
@@ -39,14 +39,14 @@ def build_binary_stl_bytes(triangles: list[tuple[np.ndarray, np.ndarray, np.ndar
     """
 
     buf = bytearray()
-    header = b"dem_to_stl".ljust(80, b" ")
+    header = b'dem_to_stl'.ljust(80, b' ')
     buf.extend(header)
-    buf.extend(struct.pack("<I", len(triangles)))
+    buf.extend(struct.pack('<I', len(triangles)))
 
     for p0, p1, p2 in triangles:
         n = _normal(p0, p1, p2)
         packed = struct.pack(
-            "<12fH",
+            '<12fH',
             n[0],
             n[1],
             n[2],
@@ -66,7 +66,10 @@ def build_binary_stl_bytes(triangles: list[tuple[np.ndarray, np.ndarray, np.ndar
     return bytes(buf)
 
 
-def write_binary_stl(path: Path, triangles: list[tuple[np.ndarray, np.ndarray, np.ndarray]]) -> int:
+def write_binary_stl(
+        path: Path,
+        triangles: list[tuple[np.ndarray, np.ndarray, np.ndarray]],
+) -> int:
     """Write binary STL data to disk.
 
     Parameters:
@@ -79,6 +82,6 @@ def write_binary_stl(path: Path, triangles: list[tuple[np.ndarray, np.ndarray, n
 
     data = build_binary_stl_bytes(triangles)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("wb") as f:
+    with path.open('wb') as f:
         f.write(data)
     return len(triangles)

@@ -228,8 +228,8 @@ map.on("dblclick", (event) => {
 
 const viewerEl = document.getElementById("viewer");
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#f6f8fb");
-scene.fog = new THREE.Fog(0xf1f5f9, 180, 520);
+scene.background = new THREE.Color("#eeeeee");
+//scene.fog = new THREE.Fog(0xf1f5f9, 180, 520);
 
 const camera = new THREE.PerspectiveCamera(50, viewerEl.clientWidth / viewerEl.clientHeight, 0.1, 5000);
 camera.position.set(140, 120, 140);
@@ -242,7 +242,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.target.set(0, 0, 0);
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+const ambient = new THREE.AmbientLight(0xffffff, 0.9);
 scene.add(ambient);
 
 const sun = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -317,7 +317,7 @@ function updateMeshColor() {
   if (!mesh || !mesh.material || !(mesh.material instanceof THREE.MeshStandardMaterial)) {
     return;
   }
-  mesh.material.color.set(ui.meshColor?.value ?? "#9ca3af");
+  mesh.material.color.set(ui.meshColor?.value ?? "#ffffff");
 }
 
 function formatDuration(seconds) {
@@ -477,7 +477,7 @@ async function hydrateStlSizes(jobs) {
 
 function renderHistory(jobs) {
   if (!Array.isArray(jobs) || jobs.length === 0) {
-    ui.historyTableBody.innerHTML = '<tr id="historyEmptyRow"><td colspan="10" class="px-3 py-4 text-slate-500">No generated models yet.</td></tr>';
+    ui.historyTableBody.innerHTML = '<tr id="historyEmptyRow"><td colspan="11" class="px-3 py-4 text-slate-500">No generated models yet.</td></tr>';
     return;
   }
 
@@ -492,6 +492,7 @@ function renderHistory(jobs) {
     const request = job.request || {};
     const centerLat = request.center_lat != null ? Number(request.center_lat).toFixed(4) : "-";
     const centerLon = request.center_lon != null ? Number(request.center_lon).toFixed(4) : "-";
+    const demDataset = job.dem_dataset_id || request.dem_dataset_id || "-";
     const verticalExaggeration = request.vertical_exaggeration != null ? Number(request.vertical_exaggeration).toFixed(2) : "-";
     const spacing = request.mesh_spacing_mm != null ? Number(request.mesh_spacing_mm).toFixed(2) : "-";
     const stlSize = formatFileSize(job.stl_size_bytes);
@@ -500,6 +501,7 @@ function renderHistory(jobs) {
       <tr>
         <td class="px-3 py-2 text-slate-700">${escapeHtml(created)}</td>
         <td class="px-3 py-2 text-slate-700">${centerLat}, ${centerLon}</td>
+        <td class="px-3 py-2 text-slate-700">${escapeHtml(demDataset)}</td>
         <td class="px-3 py-2">${statusBadge(job.status)}</td>
         <td class="px-3 py-2 text-slate-700">${triangles}</td>
         <td class="px-3 py-2">${cacheBadge(job.cache_hit)}</td>
@@ -660,7 +662,7 @@ function loadStl(url) {
       }
 
       const material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(ui.meshColor?.value ?? "#9ca3af"),
+        color: new THREE.Color(ui.meshColor?.value ?? "#ffffff"),
         roughness: 0.92,
         metalness: 0.03,
         side: THREE.DoubleSide,

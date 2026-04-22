@@ -1,9 +1,6 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 
 class OutputShape(str, Enum):
@@ -15,9 +12,9 @@ class OutputShape(str, Enum):
     - ``SQUARE``: axis-aligned square/rectangle footprint.
     """
 
-    CIRCLE = "circular"
-    HEXAGON = "hexagonal"
-    SQUARE = "square"
+    CIRCLE = 'circular'
+    HEXAGON = 'hexagonal'
+    SQUARE = 'square'
 
 
 @dataclass(frozen=True)
@@ -53,13 +50,13 @@ class BoundingBox:
         """
 
         if not (-90.0 <= self.south <= 90.0 and -90.0 <= self.north <= 90.0):
-            raise ValueError("Latitude must be in [-90, 90].")
+            raise ValueError('Latitude must be in [-90, 90].')
         if not (-180.0 <= self.west <= 180.0 and -180.0 <= self.east <= 180.0):
-            raise ValueError("Longitude must be in [-180, 180].")
+            raise ValueError('Longitude must be in [-180, 180].')
         if self.north <= self.south:
-            raise ValueError("north must be greater than south.")
+            raise ValueError('north must be greater than south.')
         if self.east <= self.west:
-            raise ValueError("east must be greater than west.")
+            raise ValueError('east must be greater than west.')
 
 
 @dataclass(frozen=True)
@@ -87,11 +84,11 @@ class CenterRadius:
         """
 
         if not (-90.0 <= self.latitude <= 90.0):
-            raise ValueError("Center latitude must be in [-90, 90].")
+            raise ValueError('Center latitude must be in [-90, 90].')
         if not (-180.0 <= self.longitude <= 180.0):
-            raise ValueError("Center longitude must be in [-180, 180].")
+            raise ValueError('Center longitude must be in [-180, 180].')
         if self.radius_m <= 0.0:
-            raise ValueError("radius_m must be greater than 0.")
+            raise ValueError('radius_m must be greater than 0.')
 
 
 @dataclass
@@ -144,7 +141,7 @@ class DEMToSTLRequest:
         cache_dir: Local folder for downloaded GeoTIFF cache and metadata.
     """
 
-    output_path: Optional[Path] = None
+    output_path: Path | None = None
     output_shape: OutputShape = OutputShape.SQUARE
     output_width_mm: float = 100.0
     output_height_mm: float = 100.0
@@ -158,11 +155,11 @@ class DEMToSTLRequest:
     adaptive_anisotropic_refinement: bool = False
     adaptive_anisotropic_strength: float = 0.7
     base_height_mm: float = 10.0
-    corners_bbox: Optional[BoundingBox] = None
-    center_radius: Optional[CenterRadius] = None
-    earth_engine_project: str = "focus-nucleus-413610"
-    dem_dataset_id: str = "MERIT/DEM/v1_0_3"
-    cache_dir: Path = Path(".cache/dem_to_stl")
+    corners_bbox: BoundingBox | None = None
+    center_radius: CenterRadius | None = None
+    earth_engine_project: str = 'focus-nucleus-413610'
+    dem_dataset_id: str = 'MERIT/DEM/v1_0_3'
+    cache_dir: Path = Path('.cache/dem_to_stl')
 
     def validate(self) -> None:
         """Validate request ranges and mutually exclusive extent modes.
@@ -173,37 +170,59 @@ class DEMToSTLRequest:
         """
 
         if self.output_width_mm <= 0 or self.output_height_mm <= 0:
-            raise ValueError("output_width_mm and output_height_mm must be greater than 0.")
+            raise ValueError(
+                'output_width_mm and output_height_mm must be greater than 0.',
+            )
         if self.vertical_exaggeration <= 0:
-            raise ValueError("vertical_exaggeration must be greater than 0.")
+            raise ValueError('vertical_exaggeration must be greater than 0.')
         if self.mesh_spacing_mm <= 0:
-            raise ValueError("mesh_spacing_mm must be greater than 0.")
+            raise ValueError('mesh_spacing_mm must be greater than 0.')
         if self.adaptive_relief_threshold_mm <= 0:
-            raise ValueError("adaptive_relief_threshold_mm must be greater than 0.")
+            raise ValueError(
+                'adaptive_relief_threshold_mm must be greater than 0.',
+            )
         if self.adaptive_max_new_points <= 0:
-            raise ValueError("adaptive_max_new_points must be greater than 0.")
+            raise ValueError('adaptive_max_new_points must be greater than 0.')
         if self.adaptive_iterations <= 0:
-            raise ValueError("adaptive_iterations must be greater than 0.")
+            raise ValueError('adaptive_iterations must be greater than 0.')
         if not (5.0 <= self.adaptive_min_angle_deg <= 40.0):
-            raise ValueError("adaptive_min_angle_deg must be between 5 and 40 degrees.")
+            raise ValueError(
+                'adaptive_min_angle_deg must be between 5 and 40 degrees.',
+            )
         if not (0.0 <= self.adaptive_anisotropic_strength <= 2.0):
-            raise ValueError("adaptive_anisotropic_strength must be in [0, 2].")
+            raise ValueError(
+                'adaptive_anisotropic_strength must be in [0, 2].',
+            )
         if self.base_height_mm < 0:
-            raise ValueError("base_height_mm must be greater than or equal to 0.")
+            raise ValueError(
+                'base_height_mm must be greater than or equal to 0.',
+            )
+        if not self.dem_dataset_id.strip():
+            raise ValueError(
+                'dem_dataset_id must be a non-empty Earth Engine asset id.',
+            )
 
         has_bbox = self.corners_bbox is not None
         has_center = self.center_radius is not None
 
         if has_bbox == has_center:
-            raise ValueError("Provide exactly one extent mode: corners_bbox or center_radius.")
+            raise ValueError(
+                'Provide exactly one extent mode: corners_bbox or center_radius.',
+            )
 
         if has_bbox:
-            self.corners_bbox.validate()
+            corners_bbox = self.corners_bbox
+            assert corners_bbox is not None
+            corners_bbox.validate()
 
         if has_center:
-            self.center_radius.validate()
+            center_radius = self.center_radius
+            assert center_radius is not None
+            center_radius.validate()
             if self.output_shape != OutputShape.CIRCLE:
-                raise ValueError("center_radius mode is only supported for circular output.")
+                raise ValueError(
+                    'center_radius mode is only supported for circular output.',
+                )
 
 
 @dataclass(frozen=True)
@@ -220,10 +239,10 @@ class STLResult:
         stl_bytes: In-memory STL bytes when requested by API.
     """
 
-    output_path: Optional[Path]
+    output_path: Path | None
     geotiff_path: Path
     cache_hit: bool
     triangles: int
     bbox: BoundingBox
     dem_native_scale_m: float
-    stl_bytes: Optional[bytes] = None
+    stl_bytes: bytes | None = None

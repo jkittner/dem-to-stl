@@ -239,7 +239,11 @@
                 <input id="earthEngineProject" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="focus-nucleus-413610" />
               </label>
               <label class="text-xs font-semibold text-slate-700">DEM Dataset ID
-                <input id="demDatasetId" type="text" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm" value="MERIT/DEM/v1_0_3" />
+                <select id="demDatasetId" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm">
+                  <option value="MERIT/DEM/v1_0_3" selected>MERIT/DEM/v1_0_3</option>
+                  <option value="COPERNICUS/DEM/GLO30">COPERNICUS/DEM/GLO30</option>
+                  <option value="JAXA/ALOS/AW3D30/V4_1">JAXA/ALOS/AW3D30/V4_1</option>
+                </select>
               </label>
             </div>
           </fieldset>
@@ -265,9 +269,9 @@
           <h2 class="mb-2 text-sm font-bold text-slate-700">3D Preview</h2>
           <div class="viewer-toolbar text-xs text-slate-700">
             <label class="color-picker-shell" title="Mesh color">
-              <span class="color-preview" id="meshColorPreview" style="background: #9ca3af"></span>
+              <span class="color-preview" id="meshColorPreview" style="background: #ffffff"></span>
               <span class="font-semibold">Mesh Color</span>
-              <input id="meshColor" type="color" value="#9ca3af" aria-label="Mesh color" />
+              <input id="meshColor" type="color" value="#ffffff" aria-label="Mesh color" />
             </label>
             <label class="viewer-chip">Sun Azimuth
               <input id="sunAzimuth" type="range" min="0" max="360" step="1" value="28" class="w-24" />
@@ -291,6 +295,7 @@
               <tr>
                 <th class="px-3 py-2 font-semibold">Generated On</th>
                 <th class="px-3 py-2 font-semibold">Center</th>
+                <th class="px-3 py-2 font-semibold">DEM</th>
                 <th class="px-3 py-2 font-semibold">Status</th>
                 <th class="px-3 py-2 font-semibold">Triangles</th>
                 <th class="px-3 py-2 font-semibold">Cache</th>
@@ -303,7 +308,7 @@
             </thead>
             <tbody id="historyTableBody" class="divide-y divide-slate-200">
               <tr id="historyEmptyRow">
-                <td colspan="10" class="px-3 py-4 text-slate-500">No generated models yet.</td>
+                <td colspan="11" class="px-3 py-4 text-slate-500">No generated models yet.</td>
               </tr>
             </tbody>
           </table>
