@@ -6,7 +6,9 @@ Package layout uses `src/` (`src/dem_to_stl`).
 
 ## Features
 
-- DEM to STL generation from Earth Engine (MERIT DEM by default)
+- DEM to STL generation from Earth Engine (COPERNICUS/DEM, ALOS, MERIT)
+- Multi-dataset support with native projection alignment (eliminates seam artifacts)
+- Adaptive mesh refinement for detail preservation
 - Interactive web UI (map selection + 3D STL preview)
 - Background generation jobs with status polling
 - Persistent job history in SQLite (`output/web_jobs/jobs.sqlite3`)
@@ -14,9 +16,10 @@ Package layout uses `src/` (`src/dem_to_stl`).
 
 ## Quick Start
 
-```powershell
-.\venv\Scripts\python.exe -m pip install -e .
-.\venv\Scripts\python.exe -m uvicorn dem_to_stl.web_app:app --host 127.0.0.1 --port 8000
+```bash
+source venv/bin/activate
+pip install -e .
+python -m uvicorn dem_to_stl.web_app:app --host 127.0.0.1 --port 8000
 ```
 
 Open http://127.0.0.1:8000
