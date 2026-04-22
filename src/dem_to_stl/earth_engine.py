@@ -14,10 +14,31 @@ from .models import BoundingBox
 from .models import DEMToSTLRequest
 
 
-def _elevation_band_name(dataset_id: str) -> str:
-    """Return the elevation band for the supported dataset."""
+def _elevation_band_candidates(dataset_id: str) -> list[str]:
+    """Return likely elevation band names for a supported dataset."""
 
-    return 'DSM' if dataset_id == 'JAXA/ALOS/AW3D30/V4_1' else 'DEM'
+    if dataset_id == 'JAXA/ALOS/AW3D30/V4_1':
+        return ['DSM', 'DEM', 'dem']
+    if dataset_id == 'MERIT/DEM/v1_0_3':
+        return ['dem', 'DEM']
+    return ['DEM', 'dem', 'DSM']
+
+
+def _select_elevation_band(image: Any, dataset_id: str) -> Any:
+    """Select the first matching elevation band from an EE image-like object."""
+
+    band_names = list(image.bandNames().getInfo())
+    for candidate in _elevation_band_candidates(dataset_id):
+        if candidate in band_names:
+            return image.select(candidate)
+
+    if len(band_names) == 1:
+        return image.select(band_names[0])
+
+    raise ValueError(
+        f'Could not determine elevation band for {dataset_id}; '
+        f'available bands: {band_names}.',
+    )
 
 
 def _resolve_dem_image(dataset_id: str) -> tuple[Any, str]:
@@ -27,18 +48,18 @@ def _resolve_dem_image(dataset_id: str) -> tuple[Any, str]:
     of one source tile so the resulting raster is one continuous image.
     """
 
-    band_name = _elevation_band_name(dataset_id)
-
     try:
-        image = ee.Image(dataset_id).select(band_name)
+        image = _select_elevation_band(ee.Image(dataset_id), dataset_id)
         _ = image.projection().nominalScale().getInfo()
         return image, 'IMAGE'
     except Exception:
         pass
 
     try:
-        collection = ee.ImageCollection(dataset_id).select(band_name)
-        first = ee.Image(collection.first()).select(band_name)
+        collection = ee.ImageCollection(dataset_id)
+        first = _select_elevation_band(ee.Image(collection.first()), dataset_id)
+        selected_band = first.bandNames().getInfo()[0]
+        collection = collection.select(selected_band)
         native_proj = first.projection()
         mosaic = collection.mosaic().setDefaultProjection(native_proj)
         return mosaic, 'IMAGE_COLLECTION'
