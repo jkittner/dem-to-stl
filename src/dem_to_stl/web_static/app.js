@@ -291,6 +291,7 @@ function updatePrintBedSize() {
 }
 
 let mesh = null;
+let compassGroup = null;
 
 function updateSunDirection() {
   const azimuthDeg = Number(ui.sunAzimuth?.value ?? 28);
@@ -318,6 +319,64 @@ function updateMeshColor() {
     return;
   }
   mesh.material.color.set(ui.meshColor?.value ?? "#ffffff");
+}
+
+function makeCompassLabel(letter, color) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(32, 32, 28, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 34px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(letter, 32, 33);
+  const texture = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(10, 10, 1);
+  return sprite;
+}
+
+function placeCompassLabels() {
+  if (compassGroup) {
+    scene.remove(compassGroup);
+    compassGroup.children.forEach((s) => {
+      s.material.map?.dispose();
+      s.material.dispose();
+    });
+    compassGroup = null;
+  }
+  if (!mesh) return;
+
+  const box = new THREE.Box3().setFromObject(mesh);
+  const cx = (box.min.x + box.max.x) / 2;
+  const cz = (box.min.z + box.max.z) / 2;
+  const offset = 12;
+  const y = box.min.y + 1;
+
+  // After rotation.x = -π/2: STL Y=height(North) → world Z negative; STL Y=0(South) → world Z positive.
+  const labels = [
+    { letter: "N", color: "#dc2626", x: cx,             z: box.min.z - offset },
+    { letter: "S", color: "#475569", x: cx,             z: box.max.z + offset },
+    { letter: "E", color: "#475569", x: box.max.x + offset, z: cz            },
+    { letter: "W", color: "#475569", x: box.min.x - offset, z: cz            },
+  ];
+
+  compassGroup = new THREE.Group();
+  for (const { letter, color, x, z } of labels) {
+    const sprite = makeCompassLabel(letter, color);
+    sprite.position.set(x, y, z);
+    compassGroup.add(sprite);
+  }
+  scene.add(compassGroup);
 }
 
 function formatDuration(seconds) {
@@ -661,6 +720,15 @@ function loadStl(url) {
         mesh.geometry.dispose();
       }
 
+      if (compassGroup) {
+        scene.remove(compassGroup);
+        compassGroup.children.forEach((s) => {
+          s.material.map?.dispose();
+          s.material.dispose();
+        });
+        compassGroup = null;
+      }
+
       const material = new THREE.MeshStandardMaterial({
         color: new THREE.Color(ui.meshColor?.value ?? "#ffffff"),
         roughness: 0.92,
@@ -677,6 +745,7 @@ function loadStl(url) {
 
       controls.target.set(0, lift * 0.5, 0);
       scene.add(mesh);
+      placeCompassLabels();
       ui.meshInfo.textContent = "Loaded STL. Use mouse/touch to orbit and zoom.";
     },
     undefined,
