@@ -566,7 +566,7 @@ def _elevation_for_points(
         points_xy_mm[:, 0] /
         output_width_mm
     ) * (safe_east - safe_west)
-    lats = safe_north - \
+    lats = safe_south + \
         (points_xy_mm[:, 1] / output_height_mm) * (safe_north - safe_south)
 
     sampled_linear = da.interp(
